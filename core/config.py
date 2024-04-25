@@ -12,7 +12,6 @@ from pydantic import (
     IPvAnyAddress,
     AnyHttpUrl,
     # ImportString,
-    
     PostgresDsn,
 )
 
@@ -31,7 +30,6 @@ class Settings(BaseSettings):
     postgres_host: AnyHttpUrl | IPvAnyAddress
     postgres_database: str
 
-
     secret_key: str = Field(alias="VM_SECRET_KEY")
     hash_algorithm: Annotated[str, StringConstraints(pattern="^(HS256)$")] = Field(..., alias="HASH_ALGORITHM")
 
@@ -42,13 +40,16 @@ class Settings(BaseSettings):
 
     # this isnt parsed from env
     @property
-    def postgres_dsn(self) -> str:
+    def postgres_dsn(self) -> PostgresDsn:
         password = quote_plus(self.postgres_password)
-        return f"postgresql+psycopg2://{self.postgres_username}:{password}@{self.postgres_host}/{self.postgres_database}"
+        return f"postgresql+psycopg2://{self.postgres_username}:{password}@{self.postgres_host}/{self.postgres_database}"  # noqa
+
     # prevent sensetive cred from being printed
     def model_dump(self, *args, **kwargs):
         d = super().model_dump(*args, **kwargs)
-        censored_keys = ["superuser_password", "postgres_password"]
+        censored_keys = ["superuser_password",
+                         "postgres_password",
+                         "secret_key"]
         for key in censored_keys:
             if key in d:
                 d[key] = '******'

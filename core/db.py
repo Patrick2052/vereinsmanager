@@ -12,7 +12,7 @@ SessionLocal = sessionmaker(bind=engine)
 
 Base = declarative_base()
 
+
 def init_db(db: Session) -> None:
     """
     """
-
