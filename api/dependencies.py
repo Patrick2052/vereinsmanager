@@ -1,16 +1,18 @@
-from core.config import settings
-from fastapi.security import OAuth2PasswordBearer
-from core.db import SessionLocal
-from typing import Annotated
-from fastapi import Depends, HTTPException, status
 from collections.abc import Generator
+from typing import Annotated
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from pydantic import ValidationError
-from jose import JWTError, jwt
-from core import security
-from schemas.token import TokenPayload
-import schemas
+from sqlalchemy.ext.asyncio import AsyncSession
+
 import models as mo
+import schemas
+from schemas.token import TokenPayload
+from core import security
+from core.config import settings
+from core.db import get_db_session
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl="/auth/access-token"
@@ -19,27 +21,43 @@ reusable_oauth2 = OAuth2PasswordBearer(
 
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
+# def auth_token(token = Depends(reusable_oauth2)):
+#     try:
+#         payload = security.decode_token(token)
+#         token_data = TokenPayload(**payload)
+#     except (JWTError, ValidationError):
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="Could not validate credentials",
+#         )
 
-async def get_db():
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
+#     if token_data["type"] == "refresh":
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="Refresh token not valid"
+#         )
 
 
-SessionDep = Annotated[SessionLocal, Depends(get_db)]
+# async def get_db():
+#     session = SessionLocal()
+#     try:
+#         yield session
+#     finally:
+#         session.close()
+
+
+SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
 def get_current_user(session: SessionDep, token: TokenDep) -> schemas.User:
     try:
-        # payload = jwt.decode(
-        #     token, settings.secret_key, algorithms=[security.ALGORITHM]
-        # )
         payload = security.decode_token(token)
-        print(payload)
         token_data = TokenPayload(**payload)
-        print(token_data)
+
+        if token_data.type != "access":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="Invalid access token")
+
     except (JWTError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -58,9 +76,7 @@ def get_current_user(session: SessionDep, token: TokenDep) -> schemas.User:
 
 
 def has_agb(user: schemas.User = Depends(get_current_user)) -> bool:
-
     if not user.agb_read_and_accepted:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="agb not accepted")
-
     else:
         return True

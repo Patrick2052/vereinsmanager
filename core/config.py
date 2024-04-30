@@ -2,7 +2,7 @@ from typing import Any, Callable, Set, Annotated
 from pprint import pformat
 import shutil
 from urllib.parse import quote_plus
-
+from datetime import timedelta
 from pydantic import (
     # AliasChoices,
     # AmqpDsn,
@@ -38,11 +38,16 @@ class Settings(BaseSettings):
 
     access_token_expire_minutes: str
 
+    jwt_session_lifetime: timedelta = timedelta(minutes=30)
+    jwt_refresh_lifetime: timedelta = timedelta(days=7)
+
+    echo_sql: bool = False
+
     # this isnt parsed from env
     @property
     def postgres_dsn(self) -> PostgresDsn:
         password = quote_plus(self.postgres_password)
-        return f"postgresql+psycopg2://{self.postgres_username}:{password}@{self.postgres_host}/{self.postgres_database}"  # noqa
+        return f"postgresql+asyncpg://{self.postgres_username}:{password}@{self.postgres_host}/{self.postgres_database}"  # noqa
 
     # prevent sensetive cred from being printed
     def model_dump(self, *args, **kwargs):

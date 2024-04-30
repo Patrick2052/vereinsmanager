@@ -1,6 +1,7 @@
-from .user import UserCreate, User
+from .user import UserCreate, User, PublicUserData
 
 __all__ = [
     "UserCreate",
-    "User"
+    "User",
+    "PublicUserData"
 ]

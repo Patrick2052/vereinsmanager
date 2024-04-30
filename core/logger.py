@@ -10,6 +10,7 @@ pid = os.getpid()
 
 max_bytes = 10_000_000
 
+
 class ColoredFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
         self.COLORS = {
