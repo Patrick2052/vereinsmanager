@@ -1,8 +1,11 @@
 from typing import Any
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 import schemas
 from core.security import get_password_hash
 import models as mo
+from pydantic import EmailStr
 
 
 def create_user(db: Session, user_create: schemas.UserCreate):
@@ -16,6 +19,19 @@ def create_user(db: Session, user_create: schemas.UserCreate):
       hashed_password=user_data.hashed_password
     ))
     db.commit()
+
+
+async def get_user_by_email(db: AsyncSession, email: EmailStr) -> mo.User | None:
+    res = await db.execute(select(mo.User).where(mo.User.email == email))
+    user = res.scalars().first()
+    return user
+
+
+async def get_user_by_id(db: AsyncSession, id: str) -> mo.User | None:
+    res = await db.execute(select(mo.User).where(mo.User.id == id))
+    user = res.scalars().first()
+    return user
+
 
 # def create_user(*, session: Session, user_create: UserCreate) -> User:
 #     db_obj = User.model_validate(

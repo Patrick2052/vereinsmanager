@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     email_address: EmailStr
     email_password: str
 
+    domain: AnyHttpUrl = "http://localhost:8000"
+
+    password_recovery_redirect_url: AnyHttpUrl = "http://localhost:8000/auth/password-recovery"
+
     # this isnt parsed from env
     @property
     def postgres_dsn(self) -> PostgresDsn:

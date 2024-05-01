@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from typing import Literal
 
 
 class TokenPayload(BaseModel):
@@ -9,4 +10,20 @@ class TokenPayload(BaseModel):
 
 
 class RefreshTokenPayload(TokenPayload):
+    jti: str
+
+
+class EmailVerificationTokenPayload(BaseModel):
+    exp: int
+    type: Literal["email_verification"]
+    email: EmailStr
+    user_id: str
+    jti: str
+
+
+class PasswordResetTokenPayload(BaseModel):
+    exp: int
+    type: Literal["password_reset"]
+    email: EmailStr
+    user_id: str
     jti: str
