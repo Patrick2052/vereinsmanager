@@ -3,9 +3,13 @@ from typing import Any
 
 from jose import jwt
 from passlib.context import CryptContext
+from uuid import uuid4
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-# import models as mo
+from core.db import get_db_session
+import models as mo
+from sqlalchemy.future import select
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -18,7 +22,8 @@ def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
     to_encode = {
                 "exp": expire,
                 "sub": str(subject),
-                "type": "access"
+                "type": "access",
+                "jti": str(uuid4())
                 }
     encoded_jwt = jwt.encode(to_encode,
                              settings.secret_key,
@@ -26,15 +31,32 @@ def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
     return encoded_jwt
 
 
-def create_refresh_token(subject: str,
-                         expires_delta: timedelta = timedelta(days=7)):
+async def create_refresh_token(session: AsyncSession, subject: str,
+                               expires_delta: timedelta = timedelta(days=7)):
+    """
+    subject is the user id
+    """
+    # revoke previous refresh tokens for the user
+    res = await session.execute(select(mo.RefreshToken).where(mo.RefreshToken.user_id == subject, mo.RefreshToken.revoked == False))
+    access_tokens = res.scalars().all()
+    for token in access_tokens:
+        token.revoked = True
+    await session.commit()
 
     expire = datetime.now() + expires_delta
 
     data = {
         "sub": subject,
-        "type": "refresh"
+        "type": "refresh",
+        "jti": str(uuid4())
     }
+
+    session.add(mo.RefreshToken(
+        token_id=data["jti"],
+        user_id=data["sub"],
+        expires_at=expire
+    ))
+    await session.commit()
 
     to_encode = data.copy()
     to_encode.update({"exp": expire})

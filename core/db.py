@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, func
-from sqlalchemy.orm import sessionmaker, Session, declarative_base
+from sqlalchemy.orm import sessionmaker, Session, declarative_base, DeclarativeBase
 from core.config import settings
 from typing import Any, AsyncIterator
 import contextlib
@@ -21,7 +21,7 @@ class DatabaseSessionManager:
     def __init__(self, host: str, engine_kwargs: dict[str, Any] = {}):
         self._engine = create_async_engine(host, **engine_kwargs)
         self._sessionmaker = async_sessionmaker(autocommit=False,
-                                                bind=self._engine)
+                                                 bind=self._engine)
 
     async def close(self):
         if self._engine is None:
@@ -68,6 +68,8 @@ async def get_db_session():
 # SessionLocal = sessionmaker(bind=engine)
 
 Base = declarative_base()
+
+
 
 
 def init_db(db: Session) -> None:

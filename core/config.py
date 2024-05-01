@@ -13,6 +13,8 @@ from pydantic import (
     AnyHttpUrl,
     # ImportString,
     PostgresDsn,
+    EmailStr,
+    AnyUrl
 )
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -39,9 +41,19 @@ class Settings(BaseSettings):
     access_token_expire_minutes: str
 
     jwt_session_lifetime: timedelta = timedelta(minutes=30)
-    jwt_refresh_lifetime: timedelta = timedelta(days=7)
 
-    echo_sql: bool = False
+    jwt_refresh_lifetime: timedelta = timedelta(days=7)
+    jwt_refresh_token_cookie_name: str = "vm_refresh_token"
+    jwt_refresh_token_secure: bool = False
+
+    echo_sql: bool = True
+
+    # email
+    smtp_server: str | IPvAnyAddress
+    smtp_port: int = 587
+    smtp_use_tls: bool = True
+    email_address: EmailStr
+    email_password: str
 
     # this isnt parsed from env
     @property
@@ -54,7 +66,9 @@ class Settings(BaseSettings):
         d = super().model_dump(*args, **kwargs)
         censored_keys = ["superuser_password",
                          "postgres_password",
-                         "secret_key"]
+                         "secret_key",
+                         "email_password"
+                         ]
         for key in censored_keys:
             if key in d:
                 d[key] = '******'

@@ -6,3 +6,7 @@ class TokenPayload(BaseModel):
     # user_id: str
     exp: int
     type: str
+
+
+class RefreshTokenPayload(TokenPayload):
+    jti: str
