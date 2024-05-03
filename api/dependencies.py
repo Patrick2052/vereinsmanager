@@ -31,33 +31,7 @@ optional_oauth2_password_bearer = OAuth2PasswordBearer(
 )
 
 
-
-
 TokenDep = Annotated[str, Depends(bearer_only_oauth2)]
-
-# def auth_token(token = Depends(reusable_oauth2)):
-#     try:
-#         payload = security.decode_token(token)
-#         token_data = TokenPayload(**payload)
-#     except (JWTError, ValidationError):
-#         raise HTTPException(
-#             status_code=status.HTTP_403_FORBIDDEN,
-#             detail="Could not validate credentials",
-#         )
-
-#     if token_data["type"] == "refresh":
-#         raise HTTPException(
-#             status_code=status.HTTP_403_FORBIDDEN,
-#             detail="Refresh token not valid"
-#         )
-
-
-# async def get_db():
-#     session = SessionLocal()
-#     try:
-#         yield session
-#     finally:
-#         session.close()
 
 
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
@@ -131,4 +105,3 @@ async def refresh_token(request: Request, db: SessionDep) -> RefreshTokenPayload
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Refresh token is revoked")
 
     return token_data
-

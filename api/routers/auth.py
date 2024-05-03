@@ -20,6 +20,7 @@ from fastapi import (
     Depends,
     HTTPException,
     status,
+    BackgroundTasks
 )
 
 from schemas.token import (
@@ -31,6 +32,7 @@ from core.email import (
     send_basic_email,
     send_email_confirmation,
     send_password_recovery,
+    send_new_login_notification
 )
 from core.security import (
     create_access_token,
@@ -40,6 +42,7 @@ from core.security import (
     check_password_strength,
     create_email_verification_token,
     create_password_reset_token,
+    send_email_verification_email
 )
 from api.dependencies import (
     bearer_only_oauth2,
@@ -55,7 +58,12 @@ router = APIRouter(tags=["auth"])
 
 
 @router.post("/access-token")
-async def login_for_access_token(response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: SessionDep, request: Request):  # noqa
+async def login_for_access_token(response: Response,
+                                 form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+                                 db: SessionDep,
+                                 request: Request,
+                                 background_tasks: BackgroundTasks
+                                 ):  # noqa
 
     # check username / email
     res = await db.execute(select(mo.User).where(mo.User.email == form_data.username))
@@ -89,19 +97,9 @@ async def login_for_access_token(response: Response, form_data: Annotated[OAuth2
     client_ip = request.client.host
     user_agent = request.headers.get("User-Agent")
 
-    # send warning email to user
-    text = f"""
-    Vereinsmanager - new login to your account from IP: {client_ip}, User-Agent: {user_agent}
-
-    at {str(datetime.datetime.now())}
-
-    ### If it was you who logged in you can ignore this email ### 
-    """
-    try:
-        send_basic_email(body=text, receiver_email=user_email, subject="vereinsmanager - new login")
-    except Exception as e:
-        main_logger.exception(f"Sending Email on login to {user_email} failed",
-                              exc_info=e)
+    background_tasks.add_task(send_new_login_notification(user_email,
+                                                          client_ip,
+                                                          user_agent))
 
     return {"access_token": access_token,
             "refresh_token": refresh_token,
@@ -222,7 +220,8 @@ async def confirm_email(db: SessionDep, token: str):
 
 @router.put("/confirm-email")
 async def trigger_email_confirmation(db: SessionDep,
-                                     current_user=Depends(get_current_user)):
+                                     current_user=Depends(get_current_user),
+                                     ):
     """
     function to manually trigger a new email confirmation
     email to be sent to the user
