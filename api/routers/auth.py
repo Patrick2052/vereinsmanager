@@ -53,6 +53,8 @@ from api.dependencies import (
 
 import schemas.token
 
+from fastapi.security import OAuth2AuthorizationCodeBearer
+import httpx
 
 router = APIRouter(tags=["auth"])
 
@@ -97,9 +99,9 @@ async def login_for_access_token(response: Response,
     client_ip = request.client.host
     user_agent = request.headers.get("User-Agent")
 
-    background_tasks.add_task(send_new_login_notification(user_email,
-                                                          client_ip,
-                                                          user_agent))
+    # background_tasks.add_task(send_new_login_notification(user_email,
+    #                                                       client_ip,
+    #                                                       user_agent))
 
     return {"access_token": access_token,
             "refresh_token": refresh_token,
@@ -324,3 +326,17 @@ async def reset_password(db: SessionDep,
     await db.commit()
 
     return "new password set"
+
+
+@router.post("/logout")
+async def logout_user(db: SessionDep, current_user: schemas.User = Depends(get_current_user)):
+
+    res = await db.execute(select(mo.RefreshToken).where(mo.RefreshToken.user_id == current_user.id, mo.RefreshToken.revoked == False))
+    tokens = res.scalars().all()
+
+    for token in tokens:
+        token.revoked = True
+
+    await db.commit()
+
+    return "logged out"

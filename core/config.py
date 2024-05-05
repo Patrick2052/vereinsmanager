@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     jwt_refresh_token_cookie_name: str = "vm_refresh_token"
     jwt_refresh_token_secure: bool = False
 
+    github_client_id: str
+    github_client_secret: str
+
     echo_sql: bool = True
 
     # email
